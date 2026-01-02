@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMS - Smart MCQ Solver</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #d4f1d4 0%, #a8e6a8 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 60px;
+            color: #166534;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .header-subtitle {
+            display: inline-block;
+            border: 4px solid #166534;
+            border-radius: 50px;
+            padding: 8px 35px;
+        }
+
+        .header-subtitle h2 {
+            font-size: 24px;
+            color: #166534;
+        }
+
+        .main-box {
+            background: #f0fdf4;
+            border: 4px solid #16a34a;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .column-headers {
+            display: grid;
+            grid-template-columns: 50px 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .column-headers h3 {
+            text-align: center;
+            font-size: 20px;
+            color: #166534;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 50px 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .row-number {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 12px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #15803d;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .word-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #16a34a;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .word-input:focus {
+            border-color: #15803d;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+        }
+
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #16a34a;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .suggestions.active {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #d1fae5;
+            transition: background 0.2s;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: #d1fae5;
+        }
+
+        .suggestion-word {
+            font-weight: 600;
+            color: #166534;
+        }
+
+        .suggestion-source {
+            font-size: 12px;
+            color: #16a34a;
+            margin-top: 2px;
+        }
+
+        .meaning-box {
+            min-height: 60px;
+            padding: 12px;
+            border: 2px solid #16a34a;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .loading {
+            color: #16a34a;
+        }
+
+        .no-results {
+            color: #6b7280;
+        }
+
+        .meaning-item {
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #d1fae5;
+        }
+
+        .meaning-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .meaning-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .meaning-text {
+            flex: 1;
+            color: #374151;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .meaning-source {
+            font-size: 12px;
+            color: #16a34a;
+            margin-top: 5px;
+        }
+
+        .read-more-btn {
+            padding: 6px 12px;
+            background: #16a34a;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+            transition: background 0.3s;
+        }
+
+        .read-more-btn:hover {
+            background: #15803d;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        .footer p {
+            font-size: 20px;
+            color: #166534;
+            font-weight: 600;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            background: #16a34a;
+            color: white;
+            padding: 20px 25px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            padding: 25px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-text {
+            color: #374151;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .modal-source {
+            font-size: 14px;
+            color: #16a34a;
+            font-weight: 600;
+        }
+
+        .modal-footer {
+            background: #f9fafb;
+            padding: 15px 25px;
+            border-radius: 0 0 10px 10px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .ok-btn {
+            padding: 10px 30px;
+            background: #16a34a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .ok-btn:hover {
+            background: #15803d;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 40px;
+            }
+
+            .header-subtitle h2 {
+                font-size: 18px;
+            }
+
+            .column-headers {
+                grid-template-columns: 40px 1fr;
+                gap: 10px;
+            }
+
+            .column-headers h3:last-child {
+                display: none;
+            }
+
+            .row {
+                grid-template-columns: 40px 1fr;
+                gap: 10px;
+            }
+
+            .row-number {
+                font-size: 20px;
+            }
+
+            .meaning-box {
+                grid-column: 1 / -1;
+                margin-top: 10px;
+            }
+
+            .main-box {
+                padding: 15px;
+            }
+
+            .word-input {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .modal-content {
+                max-width: 100%;
+            }
+
+            .modal-header h3 {
+                font-size: 18px;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .header-subtitle {
+                padding: 6px 25px;
+            }
+
+            .header-subtitle h2 {
+                font-size: 16px;
+            }
+
+            .row-number {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SMS</h1>
+            <div class="header-subtitle">
+                <h2>Smart MCQ Solver</h2>
+            </div>
+        </div>
+
+        <div class="main-box">
+            <div class="column-headers">
+                <div></div>
+                <h3>Add word</h3>
+                <h3>Meaning</h3>
+            </div>
+
+            <div id="rows-container"></div>
+        </div>
+
+        <div class="footer">
+            <p>LearnX-2026</p>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>සම්පූර්ණ විස්තරය</h3>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-text" class="modal-text"></p>
+                <p id="modal-source" class="modal-source"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="ok-btn" onclick="closeModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://uqgzlaxsnknheoerbfus.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxZ3psYXhzbmtuaGVvZXJiZnVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MjM2MTUsImV4cCI6MjA3OTI4MzYxNX0.IYWZ7ukx8J-GJMWy7cMk2BWnmzJmJjjE93yEmJie7nQ';
+
+        let suggestionTimeout = {};
+        let currentFocusIndex = {};
+
+        const rowsContainer = document.getElementById('rows-container');
+        for (let i = 1; i <= 6; i++) {
+            const row = document.createElement('div');
+            row.className = 'row';
+            row.innerHTML = `
+                <div class="row-number">${i}</div>
+                <div class="input-wrapper">
+                    <input type="text" class="word-input" id="word-${i}" placeholder="වචනය ඇතුළත් කරන්න" autocomplete="off">
+                    <div class="suggestions" id="suggestions-${i}"></div>
+                </div>
+                <div class="meaning-box" id="meaning-${i}"></div>
+            `;
+            rowsContainer.appendChild(row);
+
+            const input = document.getElementById(`word-${i}`);
+            const suggestionsDiv = document.getElementById(`suggestions-${i}`);
+
+            input.addEventListener('input', function() {
+                clearTimeout(suggestionTimeout[i]);
+                const word = this.value.trim();
+
+                if (word.length >= 2) {
+                    suggestionTimeout[i] = setTimeout(() => {
+                        getSuggestions(word, i);
+                    }, 300);
+                } else {
+                    suggestionsDiv.classList.remove('active');
+                    suggestionsDiv.innerHTML = '';
+                }
+            });
+
+            input.addEventListener('blur', function() {
+                setTimeout(() => {
+                    suggestionsDiv.classList.remove('active');
+                }, 200);
+            });
+
+            input.addEventListener('focus', function() {
+                if (suggestionsDiv.innerHTML) {
+                    suggestionsDiv.classList.add('active');
+                }
+            });
+
+            input.addEventListener('keydown', function(e) {
+                const items = suggestionsDiv.querySelectorAll('.suggestion-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentFocusIndex[i] = (currentFocusIndex[i] || 0) + 1;
+                    if (currentFocusIndex[i] >= items.length) currentFocusIndex[i] = 0;
+                    highlightSuggestion(items, currentFocusIndex[i]);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentFocusIndex[i] = (currentFocusIndex[i] || 0) - 1;
+                    if (currentFocusIndex[i] < 0) currentFocusIndex[i] = items.length - 1;
+                    highlightSuggestion(items, currentFocusIndex[i]);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (currentFocusIndex[i] !== undefined && items[currentFocusIndex[i]]) {
+                        items[currentFocusIndex[i]].click();
+                    }
+                }
+            });
+        }
+
+        function highlightSuggestion(items, index) {
+            items.forEach((item, idx) => {
+                if (idx === index) {
+                    item.style.background = '#d1fae5';
+                } else {
+                    item.style.background = '';
+                }
+            });
+        }
+
+        async function getSuggestions(word, index) {
+            const suggestionsDiv = document.getElementById(`suggestions-${index}`);
+            
+            try {
+                const results = [];
+                const seenWords = new Set();
+
+                // Table configurations with their respective column names
+                const tables = [
+                    { name: 'learnX pedia', wordCol: 'word', meaningCol: 'meaning' },
+                    { name: 'sinhala_words', wordCol: 'word', meaningCol: 'meaning' },
+                    { name: 'art', wordCol: 'word', meaningCol: 'content' }
+                ];
+
+                for (const table of tables) {
+                    try {
+                        const response = await fetch(
+                            `${SUPABASE_URL}/rest/v1/${table.name}?${table.wordCol}=ilike.${encodeURIComponent(word)}*&select=${table.wordCol}`,
+                            {
+                                headers: {
+                                    'apikey': SUPABASE_ANON_KEY,
+                                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                                }
+                            }
+                        );
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data && data.length > 0) {
+                                data.forEach(item => {
+                                    const itemWord = item[table.wordCol];
+                                    if (itemWord && !seenWords.has(itemWord)) {
+                                        seenWords.add(itemWord);
+                                        results.push({ 
+                                            word: itemWord, 
+                                            source: table.name 
+                                        });
+                                    }
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        console.error(`Error fetching from ${table.name}:`, err);
+                    }
+                }
+
+                if (results.length > 0) {
+                    let html = '';
+                    results.slice(0, 10).forEach(item => {
+                        html += `
+                            <div class="suggestion-item" onclick="selectSuggestion('${item.word.replace(/'/g, "\\'")}', ${index})">
+                                <div class="suggestion-word">${item.word}</div>
+                                <div class="suggestion-source">මූලාශ්‍රය: ${item.source}</div>
+                            </div>
+                        `;
+                    });
+                    suggestionsDiv.innerHTML = html;
+                    suggestionsDiv.classList.add('active');
+                } else {
+                    suggestionsDiv.classList.remove('active');
+                    suggestionsDiv.innerHTML = '';
+                }
+            } catch (error) {
+                console.error('Error getting suggestions:', error);
+            }
+        }
+
+        function selectSuggestion(word, index) {
+            const input = document.getElementById(`word-${index}`);
+            const suggestionsDiv = document.getElementById(`suggestions-${index}`);
+            
+            input.value = word;
+            suggestionsDiv.classList.remove('active');
+            
+            searchWord(index, word);
+        }
+
+        async function searchWord(index, providedWord = null) {
+            const wordInput = document.getElementById(`word-${index}`);
+            const meaningBox = document.getElementById(`meaning-${index}`);
+            const word = providedWord || wordInput.value.trim();
+
+            if (!word) {
+                meaningBox.innerHTML = '';
+                return;
+            }
+
+            meaningBox.innerHTML = '<div class="loading">සොයමින්...</div>';
+
+            try {
+                const results = [];
+
+                const tables = [
+                    { name: 'learnX pedia', wordCol: 'word', meaningCol: 'meaning' },
+                    { name: 'sinhala_words', wordCol: 'word', meaningCol: 'meaning' },
+                    { name: 'art', wordCol: 'word', meaningCol: 'content' }
+                ];
+
+                for (const table of tables) {
+                    try {
+                        const response = await fetch(
+                            `${SUPABASE_URL}/rest/v1/${table.name}?${table.wordCol}=eq.${encodeURIComponent(word)}`,
+                            {
+                                headers: {
+                                    'apikey': SUPABASE_ANON_KEY,
+                                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                                }
+                            }
+                        );
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data && data.length > 0) {
+                                data.forEach(item => {
+                                    const meaning = item[table.meaningCol];
+                                    if (meaning) {
+                                        results.push({ 
+                                            meaning: meaning, 
+                                            source: table.name 
+                                        });
+                                    }
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        console.error(`Error searching in ${table.name}:`, err);
+                    }
+                }
+
+                if (results.length > 0) {
+                    let html = '';
+                    results.forEach((item, idx) => {
+                        const shouldShowReadMore = item.meaning && item.meaning.length > 150;
+                        const displayText = shouldShowReadMore 
+                            ? item.meaning.substring(0, 150) + '...' 
+                            : item.meaning;
+
+                        html += `
+                            <div class="meaning-item">
+                                <div class="meaning-content">
+                                    <div style="flex: 1;">
+                                        <div class="meaning-text">${displayText}</div>
+                                        <div class="meaning-source">මූලාශ්‍රය: ${item.source}</div>
+                                    </div>
+                                    ${shouldShowReadMore ? `
+                                        <button class="read-more-btn" onclick='openModal(${JSON.stringify(item.meaning)}, "${item.source}")'>
+                                            Click to read more
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    meaningBox.innerHTML = html;
+                } else {
+                    meaningBox.innerHTML = '<div class="no-results">වචනය හමු නොවේ</div>';
+                }
+            } catch (error) {
+                console.error('Error searching:', error);
+                meaningBox.innerHTML = '<div class="no-results">දෝෂයක් ඇතිවිය</div>';
+            }
+        }
+
+        function openModal(content, source) {
+            document.getElementById('modal-text').textContent = content;
+            document.getElementById('modal-source').textContent = 'මූලාශ්‍රය: ' + source;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
